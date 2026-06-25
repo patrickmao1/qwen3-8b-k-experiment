@@ -1,0 +1,22 @@
+# Python venv + caches
+.venv/
+__pycache__/
+*.pyc
+
+# Large / regenerable data artifacts (rebuild via scripts/)
+data/
+
+# Training outputs + model adapters
+outputs/
+
+# unsloth's auto-generated patched-trainer cache (regenerable, machine-specific)
+unsloth_compiled_cache/
+
+# Compiled K definitions from the pilot / tests
+pilot/**/*-kompiled/
+*-kompiled/
+
+# HF datasets cache, if ever placed in-repo
+.cache/
+
+pilot/
