@@ -9,16 +9,17 @@ Loads pre-packed fixed-length token blocks from data/packed/, trains LoRA adapte
 (optionally embeddings), evaluates K perplexity on val with early stopping, and
 saves adapters to train.output_dir.
 """
+# ruff: noqa: I001
 import argparse
 import json
 import os
 
+# unsloth must be imported before transformers/trl for its patches to apply.
+from unsloth import FastLanguageModel
+
 import torch
 from datasets import load_from_disk
 from transformers import EarlyStoppingCallback, Trainer, TrainingArguments
-
-# unsloth must be imported before transformers/trl for its patches to apply.
-from unsloth import FastLanguageModel
 
 from kcpt import paths
 from kcpt.config import load_train_config, snapshot_to
