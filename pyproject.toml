@@ -35,10 +35,10 @@ dependencies = [
 # default: `uv sync --group eval`.
 [dependency-groups]
 eval = ["lm-eval==0.4.12"]
+dev = ["pytest>=8.0", "ruff>=0.6"]
 
 [tool.uv]
 # This is an application (scripts run directly), not an importable/buildable package.
-package = false
 
 # Blackwell (sm_120) needs the CUDA 12.8 torch build. `explicit = true` means only
 # packages explicitly routed here (below) use this index — everything else is PyPI.
@@ -50,3 +50,16 @@ explicit = true
 [tool.uv.sources]
 torch = { index = "pytorch-cu128" }
 torchvision = { index = "pytorch-cu128" }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["kcpt"]
+
+[tool.ruff]
+line-length = 100
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+ignore = ["E501"]
