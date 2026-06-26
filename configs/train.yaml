@@ -1,0 +1,34 @@
+# CPT recipe: drives train_cpt. model.name/max_seq_length must match what the
+# packed data was built for (asserted at train time).
+model:
+  name: "unsloth/Qwen3-8B-Base"
+  max_seq_length: 2048
+  load_in_4bit: true
+  dtype: null
+
+lora:
+  r: 32
+  alpha: 32
+  dropout: 0.0
+  target_modules: ["q_proj","k_proj","v_proj","o_proj","gate_proj","up_proj","down_proj"]
+  train_embeddings: false
+  use_gradient_checkpointing: "unsloth"
+
+train:
+  output_dir: "outputs/cpt-qwen3-8b"
+  epochs: 3
+  per_device_batch_size: 2
+  grad_accum: 8
+  learning_rate: 3.0e-5
+  embedding_learning_rate: 3.0e-6
+  lr_scheduler: "cosine"
+  warmup_ratio: 0.05
+  weight_decay: 0.01
+  max_grad_norm: 1.0
+  logging_steps: 5
+  eval_steps: 50
+  save_steps: 100
+  early_stopping_patience: 3
+  seed: 1234
+  report_to: "tensorboard"
+  packing: true

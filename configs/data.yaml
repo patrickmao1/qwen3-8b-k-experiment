@@ -1,0 +1,40 @@
+# Data-pipeline config: drives make_splits -> build_replay -> pack_dataset.
+# model_name + max_seq_length are the tokenizer/seq_len the corpus is packed FOR.
+model_name: "unsloth/Qwen3-8B-Base"
+max_seq_length: 2048
+extra_k_shards: []          # drop-in dirs of *.k mixed as K data
+
+split:
+  train: 0.80
+  val: 0.10
+  test: 0.10
+  seed: 1234
+  by: "file"
+  decontaminate: true
+
+mixture:
+  k_fraction: 0.70
+  replay_fraction: 0.30
+  replay:
+    code: 0.70
+    reasoning_math: 0.20
+    general_text: 0.10
+  use_doc_weights: true
+
+replay_sources:
+  code:
+    dataset: "bigcode/the-stack-smol"
+    split: "train"
+    text_field: "content"
+    interleave_dirs: ["data/python","data/java","data/javascript","data/typescript",
+      "data/c","data/c++","data/c-sharp","data/go","data/rust","data/ruby","data/php",
+      "data/scala","data/haskell","data/lua","data/shell","data/sql"]
+  reasoning_math:
+    dataset: "open-r1/OpenR1-Math-220k"
+    split: "train"
+    text_field: "problem"
+  general_text:
+    dataset: "HuggingFaceFW/fineweb-edu"
+    subset: "sample-10BT"
+    split: "train"
+    text_field: "text"
