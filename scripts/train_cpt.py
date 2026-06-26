@@ -15,8 +15,7 @@ import argparse, json, math, os
 from unsloth import FastLanguageModel
 import torch
 from datasets import load_from_disk
-from transformers import (Trainer, TrainingArguments, EarlyStoppingCallback,
-                          TrainerCallback)
+from transformers import Trainer, TrainingArguments, EarlyStoppingCallback
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PACKED = os.path.join(ROOT, "data", "packed")
@@ -31,10 +30,14 @@ class Collator:
         ids = torch.tensor([f["input_ids"] for f in feats], dtype=torch.long)
         return {"input_ids": ids, "attention_mask": torch.ones_like(ids), "labels": ids.clone()}
 
-class PerplexityCallback(TrainerCallback):
-    def on_evaluate(self, args, state, control, metrics=None, **kw):
-        if metrics and "eval_loss" in metrics:
-            metrics["eval_perplexity"] = math.exp(min(metrics["eval_loss"], 20))
+class CPTTrainer(Trainer):
+    """Adds eval_perplexity to the metrics dict *before* it's dispatched to the
+    reporting integrations, so it reaches TensorBoard/W&B. A TrainerCallback's
+    on_evaluate runs after self.log(), too late to be logged."""
+    def log(self, logs, *args, **kwargs):
+        if "eval_loss" in logs and "eval_perplexity" not in logs:
+            logs["eval_perplexity"] = math.exp(min(logs["eval_loss"], 20))
+        super().log(logs, *args, **kwargs)
 
 def main():
     ap = argparse.ArgumentParser()
@@ -86,11 +89,10 @@ def main():
         report_to="none" if args.smoke else tr.get("report_to", "tensorboard"),
         run_name=os.path.basename(tr["output_dir"]),
     )
-    trainer = Trainer(
+    trainer = CPTTrainer(
         model=model, args=targs, train_dataset=train_ds, eval_dataset=val_ds,
         data_collator=Collator(),
-        callbacks=[PerplexityCallback(),
-                   EarlyStoppingCallback(early_stopping_patience=tr["early_stopping_patience"])],
+        callbacks=[EarlyStoppingCallback(early_stopping_patience=tr["early_stopping_patience"])],
     )
     print(f"VRAM before: {torch.cuda.memory_allocated()/1e9:.1f} GB", flush=True)
     trainer.train()
