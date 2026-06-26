@@ -120,6 +120,15 @@ held-out K perplexity** (val). On finish it saves the **adapter** to
 **Monitor:** watch `loss` going down and `eval_perplexity` (logged at each eval).
 If `eval_perplexity` stops improving, early stopping halts the run.
 
+**TensorBoard:** metrics are logged to `outputs/cpt-qwen3-8b/runs/` (set by
+`train.report_to` in `configs/cpt.yaml`). Launch the dashboard with:
+```bash
+uv run tensorboard --logdir outputs/cpt-qwen3-8b/runs   # then open http://localhost:6006
+```
+Each run gets its own timestamped subdir, so pointing `--logdir` at `runs/`
+overlays all runs for comparison. To switch trackers later, set `report_to` to
+`"wandb"`, `["tensorboard","wandb"]`, or `"none"` — no code change needed.
+
 ---
 
 ## 5. Using / evaluating the adapter

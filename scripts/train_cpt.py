@@ -80,7 +80,11 @@ def main():
         save_strategy="steps", save_steps=8 if args.smoke else tr["save_steps"],
         save_total_limit=2, load_best_model_at_end=True,
         metric_for_best_model="eval_loss", greater_is_better=False,
-        seed=tr["seed"], report_to="none", optim="adamw_8bit",
+        seed=tr["seed"], optim="adamw_8bit",
+        # Experiment tracking (default tensorboard -> <output_dir>/runs/). Disabled
+        # for --smoke so throwaway test runs don't litter the log dir.
+        report_to="none" if args.smoke else tr.get("report_to", "tensorboard"),
+        run_name=os.path.basename(tr["output_dir"]),
     )
     trainer = Trainer(
         model=model, args=targs, train_dataset=train_ds, eval_dataset=val_ds,

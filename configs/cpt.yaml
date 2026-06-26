@@ -97,3 +97,7 @@ train:
   early_stopping_patience: 3     # stop if val ppl doesn't improve N evals
   seed: 1234
   packing: true                  # pack documents into full max_seq_length sequences
+  # Experiment tracking. "tensorboard" logs to <output_dir>/runs/ (view with
+  # `uv run tensorboard --logdir outputs/cpt-qwen3-8b/runs`). Switch to "wandb",
+  # or a list ["tensorboard","wandb"], or "none" to disable.
+  report_to: "tensorboard"

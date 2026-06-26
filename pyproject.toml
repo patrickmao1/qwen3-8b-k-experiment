@@ -25,6 +25,10 @@ dependencies = [
     "numpy==2.5.0",
     "pyyaml==6.0.3",
     "sentencepiece==0.2.1",
+    # --- experiment tracking (HF Trainer report_to="tensorboard") ---
+    "tensorboard==2.20.0",
+    # tensorboard 2.20 imports pkg_resources, which setuptools removed in 81+.
+    "setuptools<81",
 ]
 
 # Eval-only extras (the lm-evaluation-harness forgetting screen). Not installed by
