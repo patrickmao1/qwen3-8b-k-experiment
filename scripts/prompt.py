@@ -18,7 +18,7 @@ Usage:
 import argparse
 import sys
 
-from eval_suite import load_model  # same unsloth 4-bit loader as the eval suite
+from kcpt.model import load_model
 
 DEFAULT_MODEL = "outputs/cpt-qwen3-8b/adapter"  # latest CPT adapter
 

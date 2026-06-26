@@ -23,15 +23,14 @@ Outputs: outputs/eval/<label>.json
 import argparse, json, math, os, re, shutil, subprocess, tempfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BENCH = os.path.join(ROOT, "data", "benchmark")
-TEST = os.path.join(ROOT, "data", "splits", "test.jsonl")
-FINAL = os.path.join(ROOT, "data", "corpus_final")
-OUTDIR = os.path.join(ROOT, "outputs", "eval")
-SENTINEL = "// >>> COMPLETE THE RULES BELOW <<<"
+from kcpt import paths
+from kcpt.model import load_model
+from kcpt.metrics import corpus_perplexity
 
-ENV = dict(os.environ)
-ENV["PATH"] = os.path.expanduser("~/.nix-profile/bin") + ":" + ENV.get("PATH", "")
+BENCH = paths.BENCH
+OUTDIR = os.path.join(paths.OUTPUTS, "eval")
+ENV = paths.ENV
+SENTINEL = "// >>> COMPLETE THE RULES BELOW <<<"
 
 # deprecated-syntax markers (compiler-confirmed), run on comment/string-stripped text
 _block = re.compile(r"/\*.*?\*/", re.S)
@@ -54,58 +53,6 @@ DEPRECATED = {
 def uses_deprecated(code):
     s = strip_code(code)
     return [k for k, rx in DEPRECATED.items() if rx.search(s)]
-
-
-# ---------------- model ----------------
-def load_model(model_id, max_seq_length):
-    from unsloth import FastLanguageModel
-
-    model, tok = FastLanguageModel.from_pretrained(
-        model_name=model_id,
-        max_seq_length=max_seq_length,
-        load_in_4bit=True,
-        dtype=None,
-    )
-    FastLanguageModel.for_inference(model)
-    return model, tok
-
-
-# ---------------- L1 perplexity ----------------
-def perplexity(model, tok, max_seq_length, max_docs=0):
-    import torch, collections
-
-    rows = [json.loads(l) for l in open(TEST)]
-    if max_docs:
-        rows = rows[:max_docs]
-    by = collections.defaultdict(lambda: [0.0, 0])  # repo -> [loss_sum, ntok]
-    tot = [0.0, 0]
-    for r in rows:
-        p = os.path.join(FINAL, r["kind"], r["repo"].replace("/", "__"), r["path"])
-        try:
-            text = open(p, encoding="utf-8", errors="replace").read()
-        except FileNotFoundError:
-            continue
-        ids = tok(text, add_special_tokens=False)["input_ids"]
-        for i in range(0, len(ids), max_seq_length):
-            chunk = ids[i : i + max_seq_length]
-            if len(chunk) < 2:
-                continue
-            t = torch.tensor([chunk], device=model.device)
-            with torch.no_grad():
-                loss = model(t, labels=t).loss.item()
-            n = len(chunk) - 1
-            by[r["repo"]][0] += loss * n
-            by[r["repo"]][1] += n
-            tot[0] += loss * n
-            tot[1] += n
-    per_lang = {
-        repo: round(math.exp(min(s / n, 20)), 3) for repo, (s, n) in by.items() if n
-    }
-    overall = round(math.exp(min(tot[0] / max(tot[1], 1), 20)), 3)
-    return {
-        "overall_perplexity": overall,
-        "per_language": dict(sorted(per_lang.items())),
-    }
 
 
 # ---------------- L2 benchmark ----------------
@@ -348,11 +295,9 @@ def main():
         return
     os.makedirs(OUTDIR, exist_ok=True)
     model, tok = load_model(args.model, args.max_seq_length)
-    L1 = (
-        {}
-        if args.skip_ppl
-        else perplexity(model, tok, args.max_seq_length, args.ppl_max_docs)
-    )
+    rows = [json.loads(l) for l in open(os.path.join(paths.SPLITS, "test.jsonl"))]
+    L1 = {} if args.skip_ppl else corpus_perplexity(
+        model, tok, rows, args.max_seq_length, doc_path_fn=paths.doc_path, max_docs=args.ppl_max_docs)
     L2 = run_benchmark(
         model, tok, args.samples, args.temperature, args.max_new, args.jobs
     )
