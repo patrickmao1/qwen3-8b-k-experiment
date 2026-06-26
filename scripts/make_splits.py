@@ -10,9 +10,13 @@ is honest.
 
 Inputs:  data/final_manifest.jsonl, data/corpus_final/
 Outputs: data/splits/{train,val,test}.jsonl  (manifest rows + "split" field)
-Reads split ratios / seed from configs/cpt.yaml.
+Reads split ratios / seed from configs/data.yaml.
 """
-import json, os, re, hashlib, random
+import hashlib
+import json
+import os
+import random
+import re
 
 from kcpt import paths
 from kcpt.config import load_data_config
@@ -36,20 +40,26 @@ def main():
     cfg = {"train": dc.split.train, "val": dc.split.val, "test": dc.split.test,
            "seed": dc.split.seed, "decontaminate": dc.split.decontaminate}
     rng = random.Random(cfg.get("seed", 1234))
-    rows = [json.loads(l) for l in open(paths.FINAL_MANIFEST)]
+    rows = [json.loads(line) for line in open(paths.FINAL_MANIFEST)]
     texts = {}
     for r in rows:
-        try: texts[id(r)] = open(path(r), encoding="utf-8", errors="replace").read()
-        except FileNotFoundError: texts[id(r)] = ""
+        try:
+            texts[id(r)] = open(path(r), encoding="utf-8", errors="replace").read()
+        except FileNotFoundError:
+            texts[id(r)] = ""
     rng.shuffle(rows)
     n = len(rows)
-    n_tr = int(n * cfg["train"]); n_va = int(n * cfg["val"])
-    train = rows[:n_tr]; val = rows[n_tr:n_tr+n_va]; test = rows[n_tr+n_va:]
+    n_tr = int(n * cfg["train"])
+    n_va = int(n * cfg["val"])
+    train = rows[:n_tr]
+    val = rows[n_tr:n_tr+n_va]
+    test = rows[n_tr+n_va:]
 
     dropped = 0
     if cfg.get("decontaminate", True):
         train_sh = set()
-        for r in train: train_sh |= shingles(texts[id(r)])
+        for r in train:
+            train_sh |= shingles(texts[id(r)])
         def clean(group):
             nonlocal dropped
             out = []
@@ -61,7 +71,8 @@ def main():
                 else:
                     out.append(r)
             return out
-        val = clean(val); test = clean(test)
+        val = clean(val)
+        test = clean(test)
 
     os.makedirs(paths.SPLITS, exist_ok=True)
     for name, grp in [("train", train), ("val", val), ("test", test)]:

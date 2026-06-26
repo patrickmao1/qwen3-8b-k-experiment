@@ -20,12 +20,17 @@ Usage:
 Outputs: outputs/eval/<label>.json
 """
 
-import argparse, json, math, os, re, shutil, subprocess, tempfile
+import argparse
+import json
+import os
+import re
+import subprocess
+import tempfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from kcpt import paths
-from kcpt.model import load_model
 from kcpt.metrics import corpus_perplexity
+from kcpt.model import load_model
 
 BENCH = paths.BENCH
 OUTDIR = os.path.join(paths.OUTPUTS, "eval")
@@ -295,7 +300,7 @@ def main():
         return
     os.makedirs(OUTDIR, exist_ok=True)
     model, tok = load_model(args.model, args.max_seq_length)
-    rows = [json.loads(l) for l in open(os.path.join(paths.SPLITS, "test.jsonl"))]
+    rows = [json.loads(line) for line in open(os.path.join(paths.SPLITS, "test.jsonl"))]
     L1 = {} if args.skip_ppl else corpus_perplexity(
         model, tok, rows, args.max_seq_length, doc_path_fn=paths.doc_path, max_docs=args.ppl_max_docs)
     L2 = run_benchmark(

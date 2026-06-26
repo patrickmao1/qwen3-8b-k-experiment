@@ -16,7 +16,13 @@ Output:
   data/corpus/manifest.jsonl                       one row per harvested file
   data/corpus/repos.jsonl                          one row per repo (license, status)
 """
-import json, os, re, shutil, subprocess, sys, time, urllib.request
+import json
+import os
+import re
+import shutil
+import subprocess
+import time
+import urllib.request
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CORPUS = os.path.join(ROOT, "data", "corpus")
@@ -121,7 +127,8 @@ def harvest_repo(full_name, era, mf, rf):
              "--no-checkout", url, dest], timeout=300)
     if r.returncode != 0:
         rf.write(json.dumps({"repo": full_name, "status": "clone_fail",
-                             "log": r.stdout[-400:]}) + "\n"); rf.flush()
+                             "log": r.stdout[-400:]}) + "\n")
+        rf.flush()
         print(f"[FAIL clone] {full_name}: {r.stdout[-200:]}", flush=True)
         return 0, 0
     run(["git", "sparse-checkout", "init", "--no-cone"], cwd=dest)
@@ -155,7 +162,8 @@ def harvest_repo(full_name, era, mf, rf):
                     oh.write(text)
                 mf.write(json.dumps({"repo": full_name, "era": era, "path": rel,
                     "kind": "k_code", "bytes": nbytes, "license": lic}) + "\n")
-                n_k += 1; k_bytes += nbytes
+                n_k += 1
+                k_bytes += nbytes
             elif fn.endswith(".md"):
                 out = os.path.join(DOCS_DIR, slug, rel)
                 os.makedirs(os.path.dirname(out), exist_ok=True)
@@ -164,13 +172,15 @@ def harvest_repo(full_name, era, mf, rf):
                 mf.write(json.dumps({"repo": full_name, "era": era, "path": rel,
                     "kind": "k_docs", "bytes": nbytes, "license": lic,
                     "has_k": md_has_k(text)}) + "\n")
-                n_md += 1; md_bytes += nbytes
+                n_md += 1
+                md_bytes += nbytes
     mf.flush()
     shutil.rmtree(dest, ignore_errors=True)  # keep only harvested text
     rf.write(json.dumps({"repo": full_name, "status": "ok", "era": era,
         "license": lic, "k_files": n_k, "k_bytes": k_bytes,
         "md_files": n_md, "md_bytes": md_bytes,
-        "secs": round(time.time() - t0, 1)}) + "\n"); rf.flush()
+        "secs": round(time.time() - t0, 1)}) + "\n")
+    rf.flush()
     print(f"[ok] {full_name:48s} k={n_k:>4} ({k_bytes//1024:>5}KB) "
           f"md={n_md:>4} ({md_bytes//1024:>5}KB) {time.time()-t0:.0f}s", flush=True)
     return k_bytes, md_bytes
@@ -185,13 +195,16 @@ def main():
             print(f"--- ({i}/{len(SEEDS)}) {full} [{era}] ---", flush=True)
             try:
                 kb, mb = harvest_repo(full, era, mf, rf)
-                tot_k += kb; tot_md += mb
+                tot_k += kb
+                tot_md += mb
             except subprocess.TimeoutExpired:
                 print(f"[TIMEOUT] {full}", flush=True)
-                rf.write(json.dumps({"repo": full, "status": "timeout"}) + "\n"); rf.flush()
+                rf.write(json.dumps({"repo": full, "status": "timeout"}) + "\n")
+                rf.flush()
             except Exception as e:
                 print(f"[ERR] {full}: {e}", flush=True)
-                rf.write(json.dumps({"repo": full, "status": f"err:{e}"}) + "\n"); rf.flush()
+                rf.write(json.dumps({"repo": full, "status": f"err:{e}"}) + "\n")
+                rf.flush()
     shutil.rmtree(WORK, ignore_errors=True)
     print(f"\n=== DONE. total .k = {tot_k/1e6:.2f} MB, .md = {tot_md/1e6:.2f} MB ===", flush=True)
 

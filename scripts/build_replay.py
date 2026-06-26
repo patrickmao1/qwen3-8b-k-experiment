@@ -8,7 +8,9 @@ can reuse them too.
 Standalone use (writes jsonl for inspection):
   python scripts/build_replay.py --k-tokens 3_000_000
 """
-import argparse, json, os
+import argparse
+import json
+import os
 
 from kcpt import paths
 from kcpt.config import load_data_config
@@ -32,7 +34,8 @@ def main():
         got = 0
         with open(path, "w") as fh:
             for text, n in iter_category(key, spec, budget, tok):
-                fh.write(json.dumps({"text": text}) + "\n"); got += n
+                fh.write(json.dumps({"text": text}) + "\n")
+                got += n
         print(f"[{key}] ~{got/1e6:.2f}M tokens -> {path}", flush=True)
 
 if __name__ == "__main__":

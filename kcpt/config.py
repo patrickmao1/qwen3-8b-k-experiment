@@ -1,6 +1,6 @@
 import os
 import shutil
-from dataclasses import dataclass, field, fields, is_dataclass, MISSING
+from dataclasses import MISSING, dataclass, field, fields, is_dataclass
 
 import yaml
 

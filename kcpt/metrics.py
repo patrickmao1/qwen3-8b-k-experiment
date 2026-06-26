@@ -1,6 +1,5 @@
 import collections
 import math
-import os
 
 
 def perplexity_from_loss(loss, clamp=20.0):

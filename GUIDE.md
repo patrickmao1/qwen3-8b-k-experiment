@@ -4,7 +4,7 @@ Continued-pretraining (CPT) of a **Qwen3 base model** on **K Framework** semanti
 phase 1 of the plan (CPT → SFT → RLVR). This guide covers running the full
 pipeline end-to-end and scaling it.
 
-The whole pipeline is driven by one file: **`configs/cpt.yaml`**. Edit it, re-run.
+The pipeline is driven by two config files: **`configs/data.yaml`** (data, splits, mixture, replay sources) and **`configs/train.yaml`** (model, LoRA, training hyperparameters). Edit them, re-run.
 
 ---
 
@@ -105,9 +105,10 @@ without OOM. This is the gate before committing to a full run.
 # Make sure the FULL packed data exists (not the --smoke version):
 uv run python scripts/pack_dataset.py
 
-# Train (reads configs/cpt.yaml). Runs in the foreground; use tmux/nohup for long runs.
-nohup bash scripts/train.sh > data/train.log 2>&1 &
-tail -f data/train.log
+# Train. Runs in the foreground; use tmux/nohup for long runs.
+mkdir -p logs
+nohup bash scripts/train.sh > logs/train.log 2>&1 &
+tail -f logs/train.log
 ```
 
 **What it does:** QLoRA (4-bit) CPT on `unsloth/Qwen3-8B-Base`, LoRA on all attention
@@ -121,7 +122,7 @@ held-out K perplexity** (val). On finish it saves the **adapter** to
 If `eval_perplexity` stops improving, early stopping halts the run.
 
 **TensorBoard:** metrics are logged to `outputs/cpt-qwen3-8b/runs/` (set by
-`train.report_to` in `configs/cpt.yaml`). Launch the dashboard with:
+`train.report_to` in `configs/train.yaml`). Launch the dashboard with:
 ```bash
 uv run tensorboard --logdir outputs/cpt-qwen3-8b/runs   # then open http://localhost:6006
 ```
@@ -171,7 +172,7 @@ Reports land in `outputs/eval/<label>.json`. Note: L2 runs many `kompile`s
 
 ---
 
-## 6. Key config knobs (`configs/cpt.yaml`)
+## 6. Key config knobs (`configs/data.yaml` + `configs/train.yaml`)
 
 | Knob | Meaning | When to change |
 |------|---------|----------------|
@@ -191,7 +192,7 @@ Reports land in `outputs/eval/<label>.json`. Note: L2 runs many `kompile`s
 When the Go/Rust/Ruby/etc. `.k` semantics are ready, they slot in as extra K data:
 
 1. Put each language's `.k` files under e.g. `data/synthetic/<lang>/`.
-2. Add the paths to `data.extra_k_shards` in `configs/cpt.yaml`.
+2. Add the paths to `data.extra_k_shards` in `configs/data.yaml`.
 3. Re-run `make_splits.py` (it will need a small extension to read extra shards —
    currently it reads `final_manifest.jsonl`; add the shard dirs there or extend
    the loader) then `pack_dataset.py`, then `train_cpt.py`.

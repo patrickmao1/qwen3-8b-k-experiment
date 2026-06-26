@@ -19,7 +19,12 @@ Steps:
 Token counts here are a char/3.5 ESTIMATE (no tokenizer dep yet); they will be
 recomputed with the real Qwen3 tokenizer when the training env is set up.
 """
-import json, os, re, hashlib, collections
+import collections
+import hashlib
+import json
+import os
+import re
+
 import numpy as np
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -74,21 +79,23 @@ class UF:
     def __init__(self, n): self.p = list(range(n))
     def find(self, x):
         while self.p[x] != x:
-            self.p[x] = self.p[self.p[x]]; x = self.p[x]
+            self.p[x] = self.p[self.p[x]]
+            x = self.p[x]
         return x
     def union(self, a, b):
         ra, rb = self.find(a), self.find(b)
-        if ra != rb: self.p[ra] = rb
+        if ra != rb:
+            self.p[ra] = rb
 
 def main():
     rng = np.random.default_rng(0)
     a = rng.integers(1, MERSENNE, size=NUM_PERM, dtype=np.int64).astype(object)
     b = rng.integers(0, MERSENNE, size=NUM_PERM, dtype=np.int64).astype(object)
 
-    rows = [json.loads(l) for l in open(MANIFEST)]
+    rows = [json.loads(line) for line in open(MANIFEST)]
     print(f"loaded {len(rows)} files; reading + hashing...", flush=True)
 
-    sigs, shabuf, kept_rows = [], {}, []
+    _sigs, _shabuf, kept_rows = [], {}, []
     for i, r in enumerate(rows):
         try:
             text = open(file_path(r), encoding="utf-8", errors="replace").read()
@@ -109,7 +116,8 @@ def main():
 
     # exact dedup: mark all but the largest of each sha group
     by_sha = collections.defaultdict(list)
-    for idx, r in enumerate(rows): by_sha[r["_sha"]].append(idx)
+    for idx, r in enumerate(rows):
+        by_sha[r["_sha"]].append(idx)
     exact_dup = set()
     for grp in by_sha.values():
         if len(grp) > 1:
@@ -191,7 +199,7 @@ def main():
 
     # report
     kept = [(rows[i], rec) for i, rec in enumerate(out) if rec[1]]
-    reason_ct = collections.Counter(rec[3] for rec in out)
+    collections.Counter(rec[3] for rec in out)
     drop_ct = collections.Counter(rec[3] for rec in out if not rec[1])
     raw_tok = sum(r["est_tokens"] for r in rows)
     kept_tok = sum(r["est_tokens"] for r, rec in kept)
@@ -206,9 +214,11 @@ def main():
     kk = collections.Counter()
     kw = collections.Counter()
     for r, rec in kept:
-        kk[r["kind"]] += r["est_tokens"]; kw[r["kind"]] += int(r["est_tokens"]*rec[2])
+        kk[r["kind"]] += r["est_tokens"]
+        kw[r["kind"]] += int(r["est_tokens"]*rec[2])
     print("kept tokens by kind (raw / weighted):")
-    for k in kk: print(f"  {k:8s} {kk[k]/1e6:.2f}M / {kw[k]/1e6:.2f}M")
+    for k in kk:
+        print(f"  {k:8s} {kk[k]/1e6:.2f}M / {kw[k]/1e6:.2f}M")
     print(f"\nwrote {OUT}")
 
 if __name__ == "__main__":

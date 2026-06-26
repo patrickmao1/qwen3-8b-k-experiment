@@ -20,3 +20,6 @@ pilot/**/*-kompiled/
 .cache/
 
 pilot/
+
+# Training log files
+logs/

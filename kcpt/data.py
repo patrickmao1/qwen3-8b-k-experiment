@@ -63,7 +63,7 @@ def load_split_token_lists(name, tok, *, max_k=0, use_weights=False, rng=None):
 
 def iter_category(name, spec, budget_tokens, tok):
     """Yield (text, n_tokens) from a streaming HF dataset until budget is met."""
-    from datasets import load_dataset, interleave_datasets
+    from datasets import interleave_datasets, load_dataset
     split = spec.get("split", "train")
     dirs = spec.get("interleave_dirs")
     if dirs:

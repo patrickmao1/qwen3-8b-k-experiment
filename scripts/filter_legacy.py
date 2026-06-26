@@ -15,7 +15,10 @@ Deprecation markers were each validated against the installed kompile (v7.1.337)
 Reads keep=true rows from clean_manifest.jsonl; writes the surviving (and fixed)
 files to data/corpus_final/<kind>/<slug>/<path> plus final_manifest.jsonl.
 """
-import json, os, re, collections
+import collections
+import json
+import os
+import re
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CORPUS = os.path.join(ROOT, "data", "corpus")
@@ -51,9 +54,10 @@ def src_path(r): return os.path.join(SRC[r["kind"]], r["repo"].replace("/", "__"
 def dst_path(r): return os.path.join(FINAL_DIR, r["kind"], r["repo"].replace("/", "__"), r["path"])
 
 def main():
-    rows = [json.loads(l) for l in open(CLEAN)]
+    rows = [json.loads(line) for line in open(CLEAN)]
     kept = [r for r in rows if r["keep"]]
-    purged_by = collections.Counter(); purged_tok = collections.Counter()
+    purged_by = collections.Counter()
+    purged_tok = collections.Counter()
     purged_repo = collections.Counter()
     n_fix = 0
     out_rows = []
@@ -65,19 +69,23 @@ def main():
             continue
         tok_in += r["est_tokens"]
         if r["kind"] == "k_code":
-            det = DEEP_CODE; text = strip_code(raw)
+            det = DEEP_CODE
+            text = strip_code(raw)
         else:
-            det = DEEP_DOCS; text = raw
+            det = DEEP_DOCS
+            text = raw
         hits = [m for m, rx in det.items() if rx.search(text)]
         if hits:
             purged_by[hits[0]] += 1
-            for h in hits: pass
+            for h in hits:
+                pass
             purged_tok[hits[0]] += r["est_tokens"]
             purged_repo[r["repo"]] += r["est_tokens"]
             continue
         # apply safe require->requires fix
         fixed, nsub = REQUIRE_FIX.subn(r'\1requires\2', raw)
-        if nsub: n_fix += 1
+        if nsub:
+            n_fix += 1
         os.makedirs(os.path.dirname(dst_path(r)), exist_ok=True)
         with open(dst_path(r), "w", encoding="utf-8") as fh:
             fh.write(fixed)
@@ -99,7 +107,7 @@ def main():
     print(f"kept files in : {len(kept)}   -> survived: {len(out_rows)}   "
           f"purged: {sum(purged_by.values())}")
     print(f"require->requires fixes applied to {n_fix} files")
-    print(f"\npurged by marker (first-hit): " + ", ".join(
+    print("\npurged by marker (first-hit): " + ", ".join(
         f"{k}={purged_by[k]}f/{purged_tok[k]//1000}k" for k in purged_by))
     print(f"\ntokens: kept-in {tok_in/1e6:.2f}M -> final {tok_out/1e6:.2f}M "
           f"(purged {(tok_in-tok_out)/1e6:.2f}M)")

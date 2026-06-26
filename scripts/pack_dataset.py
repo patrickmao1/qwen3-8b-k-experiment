@@ -11,11 +11,14 @@ Run: uv run python scripts/pack_dataset.py
 Outputs: data/packed/{train,val,test}  (HF datasets, column "input_ids")
          data/packed/stats.json
 """
-import argparse, json, os, random
+import argparse
+import json
+import os
+import random
 
 from kcpt import paths
 from kcpt.config import load_data_config
-from kcpt.data import pack_token_lists, load_split_token_lists, iter_category, replay_budgets
+from kcpt.data import iter_category, load_split_token_lists, pack_token_lists, replay_budgets
 
 
 def main():
@@ -28,8 +31,8 @@ def main():
     seq_len = dc.max_seq_length
     max_k = args.max_k_docs or (200 if args.smoke else 0)
     rng = random.Random(dc.split.seed)
-    from transformers import AutoTokenizer
     from datasets import Dataset
+    from transformers import AutoTokenizer
     tok = AutoTokenizer.from_pretrained(dc.model_name)
     eos = tok.eos_token_id if tok.eos_token_id is not None else 0
 
@@ -63,7 +66,8 @@ def main():
             try:
                 for text, _n in iter_category(key, spec, budget, tok):
                     ids = tok(text, add_special_tokens=False)["input_ids"]
-                    replay_lists.append(ids); got += len(ids)
+                    replay_lists.append(ids)
+                    got += len(ids)
             except Exception as e:
                 print(f"  WARN replay[{key}] failed ({type(e).__name__}: {e}); skipping", flush=True)
             replay_tok += got
