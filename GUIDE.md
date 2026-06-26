@@ -11,8 +11,10 @@ The whole pipeline is driven by one file: **`configs/cpt.yaml`**. Edit it, re-ru
 ## 0. Prerequisites (already set up in this repo)
 
 - **GPU:** RTX 5070 Ti, 16 GB (Blackwell / sm_120).
-- **venv:** `.venv/` (Python 3.12) with torch `2.10+cu128`, unsloth, transformers,
-  datasets, peft, trl, bitsandbytes. All commands below use `.venv/bin/python`.
+- **uv project:** dependencies are declared in `pyproject.toml` and pinned in
+  `uv.lock` (Python 3.12, torch `2.10+cu128`, unsloth, transformers, datasets,
+  peft, trl, bitsandbytes). `uv sync` creates/updates `.venv/`. All commands below
+  use `uv run python` (which auto-syncs the env from the lock).
 - **K toolchain:** `kompile`/`krun` (v7.1.337) on PATH — used only for *data
   validation* (not needed for CPT itself; matters for later SFT/RLVR).
 - **C compiler:** Triton JIT-compiles GPU kernels at runtime and needs `cc`/`gcc`
@@ -21,8 +23,9 @@ The whole pipeline is driven by one file: **`configs/cpt.yaml`**. Edit it, re-ru
   it instead of calling `train_cpt.py` directly, or you'll hit
   *"Failed to find C compiler."*
 
-If you ever rebuild the env: `bash scripts/setup_stack.sh` (installs into `.venv`,
-and re-pins the cu128 torch build if unsloth downgrades it).
+To create/rebuild the env: `uv sync` (add `--group eval` for the lm-eval forgetting
+screen). uv resolves the whole graph against the cu128 index pinned in
+`pyproject.toml`, so the old "unsloth downgrades torch" repair step is no longer needed.
 
 Recommended env vars for downloads:
 ```bash
@@ -37,9 +40,9 @@ Already run; artifacts are committed under `data/`. For reference / reproduction
 
 | Step | Command | Output |
 |------|---------|--------|
-| Scrape public K | `python scripts/scrape_k.py` | `data/corpus/{k_code,k_docs}/`, `manifest.jsonl` |
-| Dedup + weight | `python scripts/clean_corpus.py` | `data/corpus/clean_manifest.jsonl` |
-| Purge deprecated K | `python scripts/filter_legacy.py` | `data/corpus_final/`, `data/final_manifest.jsonl` |
+| Scrape public K | `uv run python scripts/scrape_k.py` | `data/corpus/{k_code,k_docs}/`, `manifest.jsonl` |
+| Dedup + weight | `uv run python scripts/clean_corpus.py` | `data/corpus/clean_manifest.jsonl` |
+| Purge deprecated K | `uv run python scripts/filter_legacy.py` | `data/corpus_final/`, `data/final_manifest.jsonl` |
 
 **Corpus after cleaning:** ~5.9M raw / ~4.2M weighted tokens of *current* K across
 30 language semantics. Deprecated K3 syntax (`when`, `syntax K ::=`, `module … is`,
@@ -54,16 +57,15 @@ whole point is teaching the model **compilable** current K.
 ## 2. Build the training data
 
 ```bash
-cd /home/patrickmao/repos/ft
-source .venv/bin/activate          # or prefix each cmd with .venv/bin/python
+cd /home/patrickmao/repos/qwen3-8b-k
 
 # (a) Train/val/test split (80/10/10, file-level, decontaminated)
-python scripts/make_splits.py
+uv run python scripts/make_splits.py
 #   -> data/splits/{train,val,test}.jsonl
 
 # (b) Pack everything into fixed-length token blocks (downloads tokenizer,
 #     streams a small replay budget, tokenizes + packs). One command does it all:
-python scripts/pack_dataset.py
+uv run python scripts/pack_dataset.py
 #   -> data/packed/{train,val,test}  (HF datasets) + data/packed/stats.json
 ```
 
@@ -89,7 +91,7 @@ Useful flags: `--no-replay` (K-only), `--smoke` (tiny, for testing),
 ## 3. Smoke test (verify the trainer end-to-end)
 
 ```bash
-python scripts/pack_dataset.py --smoke      # tiny packed set (if not already done)
+uv run python scripts/pack_dataset.py --smoke      # tiny packed set (if not already done)
 bash scripts/train.sh --smoke               # 8 steps, downloads the 8B base (~5 GB)
 ```
 Success = it loads the 4-bit model, runs 8 steps, evaluates, and prints peak VRAM
@@ -101,7 +103,7 @@ without OOM. This is the gate before committing to a full run.
 
 ```bash
 # Make sure the FULL packed data exists (not the --smoke version):
-python scripts/pack_dataset.py
+uv run python scripts/pack_dataset.py
 
 # Train (reads configs/cpt.yaml). Runs in the foreground; use tmux/nohup for long runs.
 nohup bash scripts/train.sh > data/train.log 2>&1 &
@@ -151,7 +153,7 @@ bash scripts/eval.sh --model unsloth/Qwen3-8B-Base --label base
 # After CPT:
 bash scripts/eval.sh --model outputs/cpt-qwen3-8b/adapter --label cpt
 # Side-by-side:
-python scripts/eval_suite.py --compare outputs/eval/base.json outputs/eval/cpt.json
+uv run python scripts/eval_suite.py --compare outputs/eval/base.json outputs/eval/cpt.json
 ```
 Reports land in `outputs/eval/<label>.json`. Note: L2 runs many `kompile`s
 (1–3 min each) — it parallelizes with `--jobs`. Use `--samples K` for pass@K
@@ -205,8 +207,8 @@ the pipeline handles automatically.
   lower `max_seq_length`; ensure `train_embeddings: false`.
 - **Replay download fails:** `pack_dataset.py` warns and continues without that
   category; or run with `--no-replay` and add replay later.
-- **unsloth downgraded torch / cuda errors:** re-run `bash scripts/setup_stack.sh`
-  (it repairs the cu128 build).
+- **unsloth downgraded torch / cuda errors:** shouldn't happen under uv (the lock
+  pins the cu128 build); if the env looks off, `uv sync` restores it from `uv.lock`.
 - **Val perplexity not improving:** raise `lora.r`, raise LR, or add epochs — but
   beware overfitting on this small corpus (the early-stopping guard is there for it).
 

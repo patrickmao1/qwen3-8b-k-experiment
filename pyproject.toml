@@ -1,0 +1,48 @@
+[project]
+name = "qwen3-8b-k"
+version = "0.1.0"
+description = "Continued pretraining (CPT) of Qwen3-8B on the K framework"
+requires-python = "==3.12.*"
+dependencies = [
+    # --- GPU stack (pinned; torch/torchvision come from the cu128 index below) ---
+    "torch==2.10.0",
+    "torchvision==0.25.0",
+    "torchao==0.17.0",
+    "triton==3.6.0",
+    "xformers==0.0.35",
+    "bitsandbytes==0.49.2",
+    # --- HF / training stack ---
+    "transformers==5.5.0",
+    "datasets==4.3.0",
+    "accelerate==1.14.0",
+    "peft==0.19.1",
+    "trl==0.24.0",
+    "huggingface-hub==1.20.1",
+    "hf-transfer==0.1.9",
+    "unsloth==2026.6.9",
+    "unsloth-zoo==2026.6.7",
+    # --- misc ---
+    "numpy==2.5.0",
+    "pyyaml==6.0.3",
+    "sentencepiece==0.2.1",
+]
+
+# Eval-only extras (the lm-evaluation-harness forgetting screen). Not installed by
+# default: `uv sync --group eval`.
+[dependency-groups]
+eval = ["lm-eval==0.4.12"]
+
+[tool.uv]
+# This is an application (scripts run directly), not an importable/buildable package.
+package = false
+
+# Blackwell (sm_120) needs the CUDA 12.8 torch build. `explicit = true` means only
+# packages explicitly routed here (below) use this index — everything else is PyPI.
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu128" }
+torchvision = { index = "pytorch-cu128" }

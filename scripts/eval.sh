@@ -11,4 +11,4 @@ export PYTORCH_ALLOC_CONF="expandable_segments:True"
 export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
 command -v cc >/dev/null || { echo "ERROR: no C compiler (cc). Run: nix profile install nixpkgs#gcc"; exit 1; }
 command -v kompile >/dev/null || { echo "ERROR: kompile not on PATH"; exit 1; }
-exec .venv/bin/python scripts/eval_suite.py "$@"
+exec uv run python scripts/eval_suite.py "$@"

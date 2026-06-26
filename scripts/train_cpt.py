@@ -2,8 +2,8 @@
 """
 Continued-pretraining (CPT) of a Qwen3 base model on K, via unsloth QLoRA.
 
-  .venv/bin/python scripts/train_cpt.py            # full run (reads configs/cpt.yaml)
-  .venv/bin/python scripts/train_cpt.py --smoke    # 8-step end-to-end smoke test
+  uv run python scripts/train_cpt.py            # full run (reads configs/cpt.yaml)
+  uv run python scripts/train_cpt.py --smoke    # 8-step end-to-end smoke test
 
 Loads pre-packed fixed-length token blocks from data/packed/, trains LoRA adapters
 (optionally embeddings), evaluates K perplexity on val with early stopping, and

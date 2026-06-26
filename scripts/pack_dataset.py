@@ -7,7 +7,7 @@ into fixed-length sequences, and save HF datasets for the trainer.
   val   = K only (honest held-out K perplexity)
   test  = K only
 
-Run: .venv/bin/python scripts/pack_dataset.py
+Run: uv run python scripts/pack_dataset.py
 Outputs: data/packed/{train,val,test}  (HF datasets, column "input_ids")
          data/packed/stats.json
 """
