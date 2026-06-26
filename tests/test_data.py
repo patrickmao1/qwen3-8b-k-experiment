@@ -1,5 +1,7 @@
+import math
 import random
 from kcpt import paths, data
+from kcpt.config import MixtureCfg
 
 def test_doc_path_maps_repo_slashes():
     row = {"kind": "k_code", "repo": "runtimeverification/evm-semantics", "path": "evm.k"}
@@ -28,3 +30,11 @@ def test_weighted_copies_floor_plus_fractional():
 def test_weighted_copies_integer_weight_exact():
     rng = random.Random(0)
     assert all(data.weighted_copies(2.0, rng) == 2 for _ in range(50))
+
+def test_replay_budgets_proportional():
+    mix = MixtureCfg(k_fraction=0.7, replay_fraction=0.3,
+                     replay={"code": 0.7, "reasoning_math": 0.2, "general_text": 0.1})
+    b = data.replay_budgets(mix, 1_000_000)
+    total = (0.3 / 0.7) * 1_000_000
+    assert math.isclose(sum(b.values()), total, rel_tol=1e-9)
+    assert math.isclose(b["code"], total * 0.7, rel_tol=1e-9)

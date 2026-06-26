@@ -12,26 +12,16 @@ Inputs:  data/final_manifest.jsonl, data/corpus_final/
 Outputs: data/splits/{train,val,test}.jsonl  (manifest rows + "split" field)
 Reads split ratios / seed from configs/cpt.yaml.
 """
-import json, os, re, hashlib, random, sys
+import json, os, re, hashlib, random
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MAN = os.path.join(ROOT, "data", "final_manifest.jsonl")
-FINAL = os.path.join(ROOT, "data", "corpus_final")
-OUT = os.path.join(ROOT, "data", "splits")
+from kcpt import paths
+from kcpt.config import load_data_config
+
 SHINGLE = 13
 OVERLAP_THRESH = 0.50
 
-def load_cfg():
-    p = os.path.join(ROOT, "configs", "cpt.yaml")
-    try:
-        import yaml
-        return yaml.safe_load(open(p))["split"]
-    except Exception:
-        # tiny fallback parser so this runs before pyyaml is installed
-        cfg = {"train": 0.8, "val": 0.1, "test": 0.1, "seed": 1234, "decontaminate": True}
-        return cfg
-
-def path(r): return os.path.join(FINAL, r["kind"], r["repo"].replace("/", "__"), r["path"])
+def path(r):
+    return paths.doc_path(r)
 
 _ws = re.compile(r"\s+")
 def shingles(text):
@@ -42,9 +32,11 @@ def shingles(text):
             for i in range(len(toks) - SHINGLE + 1)}
 
 def main():
-    cfg = load_cfg()
+    dc = load_data_config()
+    cfg = {"train": dc.split.train, "val": dc.split.val, "test": dc.split.test,
+           "seed": dc.split.seed, "decontaminate": dc.split.decontaminate}
     rng = random.Random(cfg.get("seed", 1234))
-    rows = [json.loads(l) for l in open(MAN)]
+    rows = [json.loads(l) for l in open(paths.FINAL_MANIFEST)]
     texts = {}
     for r in rows:
         try: texts[id(r)] = open(path(r), encoding="utf-8", errors="replace").read()
@@ -71,9 +63,9 @@ def main():
             return out
         val = clean(val); test = clean(test)
 
-    os.makedirs(OUT, exist_ok=True)
+    os.makedirs(paths.SPLITS, exist_ok=True)
     for name, grp in [("train", train), ("val", val), ("test", test)]:
-        with open(os.path.join(OUT, f"{name}.jsonl"), "w") as fh:
+        with open(os.path.join(paths.SPLITS, f"{name}.jsonl"), "w") as fh:
             for r in grp:
                 r["split"] = name
                 fh.write(json.dumps(r) + "\n")
@@ -81,7 +73,7 @@ def main():
     print(f"split {n} docs -> train {len(train)} ({tk(train)/1e6:.2f}M tok) "
           f"val {len(val)} ({tk(val)/1e6:.2f}M) test {len(test)} ({tk(test)/1e6:.2f}M)")
     print(f"decontamination moved {dropped} leaked val/test docs into train")
-    print(f"wrote {OUT}/{{train,val,test}}.jsonl")
+    print(f"wrote {paths.SPLITS}/{{train,val,test}}.jsonl")
 
 if __name__ == "__main__":
     main()
