@@ -38,8 +38,6 @@ eval = ["lm-eval==0.4.12"]
 dev = ["pytest>=8.0", "ruff>=0.6"]
 
 [tool.uv]
-# This is an application (scripts run directly), not an importable/buildable package.
-
 # Blackwell (sm_120) needs the CUDA 12.8 torch build. `explicit = true` means only
 # packages explicitly routed here (below) use this index — everything else is PyPI.
 [[tool.uv.index]]
