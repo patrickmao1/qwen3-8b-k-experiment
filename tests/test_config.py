@@ -1,5 +1,7 @@
 import pytest
+
 from kcpt import config
+
 
 def test_load_data_config_valid():
     c = config.load_data_config()

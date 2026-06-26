@@ -199,7 +199,6 @@ def main():
 
     # report
     kept = [(rows[i], rec) for i, rec in enumerate(out) if rec[1]]
-    collections.Counter(rec[3] for rec in out)
     drop_ct = collections.Counter(rec[3] for rec in out if not rec[1])
     raw_tok = sum(r["est_tokens"] for r in rows)
     kept_tok = sum(r["est_tokens"] for r, rec in kept)

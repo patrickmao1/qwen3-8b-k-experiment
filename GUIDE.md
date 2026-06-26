@@ -183,7 +183,7 @@ Reports land in `outputs/eval/<label>.json`. Note: L2 runs many `kompile`s
 | `lora.train_embeddings` | train embed/lm_head | **off** by default (K adds no new vocab; memory-heavy). Turn on only with VRAM headroom |
 | `train.epochs` | passes over data | small corpus → 2–4; watch overfitting |
 | `train.learning_rate` | LoRA LR | 1e-5…5e-5 typical |
-| `data.extra_k_shards` | **your generated `.k`** | see §7 |
+| `extra_k_shards` | **your generated `.k`** | see §7 |
 
 ---
 
@@ -192,7 +192,7 @@ Reports land in `outputs/eval/<label>.json`. Note: L2 runs many `kompile`s
 When the Go/Rust/Ruby/etc. `.k` semantics are ready, they slot in as extra K data:
 
 1. Put each language's `.k` files under e.g. `data/synthetic/<lang>/`.
-2. Add the paths to `data.extra_k_shards` in `configs/data.yaml`.
+2. Add the paths to `extra_k_shards` in `configs/data.yaml`.
 3. Re-run `make_splits.py` (it will need a small extension to read extra shards —
    currently it reads `final_manifest.jsonl`; add the shard dirs there or extend
    the loader) then `pack_dataset.py`, then `train_cpt.py`.

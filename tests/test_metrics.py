@@ -1,5 +1,7 @@
 import math
+
 from kcpt import metrics
+
 
 def test_perplexity_from_loss_basic():
     assert math.isclose(metrics.perplexity_from_loss(0.0), 1.0)

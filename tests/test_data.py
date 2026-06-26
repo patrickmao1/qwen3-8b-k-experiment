@@ -1,7 +1,9 @@
 import math
 import random
-from kcpt import paths, data
+
+from kcpt import data, paths
 from kcpt.config import MixtureCfg
+
 
 def test_doc_path_maps_repo_slashes():
     row = {"kind": "k_code", "repo": "runtimeverification/evm-semantics", "path": "evm.k"}
